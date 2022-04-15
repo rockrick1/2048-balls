@@ -1,8 +1,10 @@
 extends Node
 
 const DISTANCE_TO_CONNECT : float = 75.0
+const MERGE_SNAKING_INTERVAL : float = 0.075
 const MAX_ACTIVE_BALLS : int = 50
 const SHAKE_STRENGTH : int = 2000
+const SPAWN_INTERVAL : float = .075
 const BASE_BALL_SCENE = preload("res://Scenes/Balls/BaseBall.tscn")
 const VALUE_TO_COLOR_MAP : Dictionary = {
 	0 : Color(.5,1,0),
@@ -36,6 +38,7 @@ func _ready():
 	_ballsSpawnArea = _gameScreen.get_node("BallContainer/BallsSpawnArea")
 	_selectedBalls = []
 	_spawnTimer = $SpawnTimer
+	_spawnTimer.wait_time = SPAWN_INTERVAL
 
 func startGame() -> void:
 	_spawnTimer.start()
@@ -44,7 +47,7 @@ func startGame() -> void:
 func spawnBalls(exponents : Array) -> void:
 	for exponent in exponents:
 		spawnBall(exponent)
-		yield(get_tree().create_timer(.1), "timeout")
+		yield(get_tree().create_timer(SPAWN_INTERVAL), "timeout")
 
 # Spawns ball at random location
 func spawnBall(exponent = 0) -> void:
@@ -86,7 +89,7 @@ func mergeSelectedBalls() -> void:
 		for i in range(len(_selectedBalls)):
 			var ball = _selectedBalls[i]
 			if i < len(_selectedBalls) - 1:
-				ball.destroy()
+				yield(ball.destroy(_selectedBalls[i+1], MERGE_SNAKING_INTERVAL), "completed")
 			else:
 				ball.unselect()
 				var newExponent = int(ball.Exponent + floor(sqrt(len(_selectedBalls))))
