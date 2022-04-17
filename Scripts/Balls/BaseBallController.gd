@@ -9,7 +9,7 @@ var _ballsManager
 var _color : Color
 var _selected : bool = false
 var _moveDirection : Vector2
-var _mergeInterval : float
+var _mergeSpeed : float = 0
 
 func init(exponent : int, color : Color, position : Vector2, ballsManager : Node) -> void:
 	_ballsManager = ballsManager
@@ -57,14 +57,14 @@ func destroy(nextBall, interval : float) -> void:
 func mergeWithNext(next, interval) -> void:
 	set_mode(MODE_STATIC)
 	$CollisionShape.disabled = true
-	_mergeInterval = interval
 	_moveDirection = ( next.get_global_position() - get_global_position() ).normalized()
+	_mergeSpeed = next.get_global_position().distance_to(get_global_position()) / interval
 	yield(get_tree().create_timer(interval), "timeout") 
 
 func _physics_process(delta):
 	setHighlight(_selected)
-	if _moveDirection != null:
-		position += _moveDirection * delta * _mergeInterval
+	if _mergeSpeed != 0:
+		position += _moveDirection * delta * _mergeSpeed
 
 func _on_BaseBall_mouse_entered():
 	emit_signal("hovered", self)

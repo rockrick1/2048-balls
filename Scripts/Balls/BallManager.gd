@@ -1,10 +1,10 @@
 extends Node
 
 const DISTANCE_TO_CONNECT : float = 75.0
-const MERGE_SNAKING_INTERVAL : float = 0.075
 const MAX_ACTIVE_BALLS : int = 50
 const SHAKE_STRENGTH : int = 2000
-const SPAWN_INTERVAL : float = .075
+const SPAWN_INTERVAL : float = .001
+const MERGE_SNAKING_INTERVAL : float = 0.075
 const BASE_BALL_SCENE = preload("res://Scenes/Balls/BaseBall.tscn")
 const VALUE_TO_COLOR_MAP : Dictionary = {
 	0 : Color(.5,1,0),
@@ -92,10 +92,11 @@ func mergeSelectedBalls() -> void:
 				yield(ball.destroy(_selectedBalls[i+1], MERGE_SNAKING_INTERVAL), "completed")
 			else:
 				ball.unselect()
-				var newExponent = int(ball.Exponent + floor(sqrt(len(_selectedBalls))))
+				var newExponent = int(ball.Exponent + floor(log(len(_selectedBalls)) / log(2)))
 				ball.promote(newExponent, getBallColor(newExponent))
 	else:
 		_selectedBalls[0].unselect()
+	
 	_selectedBalls.clear()
 	emit_signal("ballsMerged")
 
