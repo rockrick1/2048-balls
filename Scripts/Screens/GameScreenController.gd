@@ -1,21 +1,19 @@
 extends Node
 
-const DEBUG : bool = true
+const DEBUG := false
 
-var _ballManager : Node
-var _saveManager : Node
+onready var _ballManager := $"%BallManager"
+onready var _saveManager := $"%SaveManager"
+onready var _hudManager := $"%HudManager"
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	_ballManager = $BallManager
-	_saveManager = $SaveManager
-	
 	_ballManager.connect("ballsMerged", self, "_onBallsMerged")
 	
 	var exponents = _saveManager.loadGame()
 	if DEBUG:
 		exponents.clear()
-		for i in range(50):
+		for i in range(30):
 			exponents.append(2)
 	if len(exponents) > 0:
 		yield(_ballManager.spawnBalls(exponents), "completed")

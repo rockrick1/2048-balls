@@ -1,43 +1,31 @@
 extends Node
 
-const DISTANCE_TO_CONNECT : float = 75.0
-const MAX_ACTIVE_BALLS : int = 50
-const SHAKE_STRENGTH : int = 2000
-const SPAWN_INTERVAL : float = .001
-const MERGE_SNAKING_INTERVAL : float = 0.075
+const DISTANCE_TO_CONNECT := 75.0
+const MAX_ACTIVE_BALLS := 30
+const SHAKE_STRENGTH := 2000
+const SPAWN_INTERVAL := .001
+const MERGE_SNAKING_INTERVAL := 0.075
 const BASE_BALL_SCENE = preload("res://Scenes/Balls/BaseBall.tscn")
-const VALUE_TO_COLOR_MAP : Dictionary = {
-	0 : Color(.5,1,0),
-	1 : Color(1,0,0),
-	2 : Color(0,1,0),
-	3 : Color(1,1,0),
-	4 : Color(0,0,1),
-	5 : Color(1,0,1),
-	6 : Color(0,1,1),
-	7 : Color(1,1,1),
-}
 
 signal ballsMerged
 
-var _minValueForSpawn : int = 1
-var _valueRangeForSpawn : int = 4
+var _minValueForSpawn := 1
+var _valueRangeForSpawn := 4
 
-var _ballsParent : Node
-var _holdingExponent : int = 0
-var _gameScreen : Node2D
-var _spawnTimer : Timer
-var _ballsSpawnArea : CollisionShape2D
-var _selectedBalls : Array
-var _hoveredBall : RigidBody2D
-var _selecting : bool = false
-var _gameStarted : bool = false
+onready var _ballsParent := $"%BallsParent"
+onready var _ballsSpawnArea := $"%BallsSpawnArea"
+onready var _spawnTimer := $"%SpawnTimer"
+onready var BallColors : Array = $"%BallColors".Colors
+
+var _holdingExponent := 0
+var _gameScreen : Node
+var _selectedBalls := []
+var _selecting := false
+var _gameStarted := false
+var _merging := false
 
 func _ready():
-	_ballsParent = $BallsParent
 	_gameScreen = get_parent()
-	_ballsSpawnArea = _gameScreen.get_node("BallContainer/BallsSpawnArea")
-	_selectedBalls = []
-	_spawnTimer = $SpawnTimer
 	_spawnTimer.wait_time = SPAWN_INTERVAL
 
 func startGame() -> void:
@@ -59,13 +47,17 @@ func spawnBall(exponent = 0) -> void:
 	var position = Vector2(randi() % int(spawnExtents.x), randi() % int(spawnExtents.y)) \
 		- (spawnExtents / 2)
 	position += _ballsSpawnArea.global_position
+	
 	object.init(exponent, getBallColor(exponent), position, \
 		self)
 	object.connect("hovered", self, "_onOtherBallHovered")
+	
 	_ballsParent.add_child(object)
+	
+	HudManager.setSum(getBallSum())
 
 func getBallColor(exponent) -> Color:
-	return VALUE_TO_COLOR_MAP[int(exponent) % len(VALUE_TO_COLOR_MAP.keys())]
+	return BallColors[int(exponent) % len(BallColors)]
 
 func getHoveredBall():
 	var mousePos = get_viewport().get_mouse_position()
@@ -74,6 +66,12 @@ func getHoveredBall():
 
 func getActiveBalls() -> Array:
 	return _ballsParent.get_children()
+
+func getBallSum() -> int:
+	var sum = 0
+	for ball in getActiveBalls():
+		sum += ball.Value
+	return sum
 
 func getNearbyBalls(ball) -> Array:
 	var result : Array = []
@@ -86,6 +84,8 @@ func getNearbyBalls(ball) -> Array:
 
 func mergeSelectedBalls() -> void:
 	if len(_selectedBalls) > 1:
+		_merging = true
+		
 		for i in range(len(_selectedBalls)):
 			var ball = _selectedBalls[i]
 			if i < len(_selectedBalls) - 1:
@@ -96,6 +96,8 @@ func mergeSelectedBalls() -> void:
 				ball.promote(newExponent, getBallColor(newExponent))
 	else:
 		_selectedBalls[0].unselect()
+		
+	_merging = false
 	
 	_selectedBalls.clear()
 	emit_signal("ballsMerged")
@@ -132,7 +134,7 @@ func _onOtherBallHovered(ball) -> void:
 	ball.select()
 
 func _unhandled_input(event):
-	if not _gameStarted:
+	if not _gameStarted or _merging:
 		return
 	if event is InputEventMouseButton and event.button_index == BUTTON_LEFT:
 		if !event.pressed and len(_selectedBalls) > 0:
@@ -142,8 +144,6 @@ func _unhandled_input(event):
 			onBallClicked(getHoveredBall())
 			_selecting = true
 
-func _process(delta):
-	$BallCountLabel.set_text(str(_ballsParent.get_child_count()))
 
 func _on_SpawnTimer_timeout():
 	if len(getActiveBalls()) < MAX_ACTIVE_BALLS: spawnBall()

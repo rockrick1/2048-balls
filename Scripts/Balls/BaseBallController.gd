@@ -2,14 +2,18 @@ extends RigidBody2D
 
 signal hovered
 
+const PARTICLES_SCENE = preload("res://Scenes/Balls/BallMergeParticles.tscn")
+
 var Exponent : int
-var _value : int
 var Radius : float
+var Value : int
+
 var _ballsManager
 var _color : Color
 var _selected : bool = false
 var _moveDirection : Vector2
 var _mergeSpeed : float = 0
+var _sprite : Sprite
 
 func init(exponent : int, color : Color, position : Vector2, ballsManager : Node) -> void:
 	_ballsManager = ballsManager
@@ -18,11 +22,13 @@ func init(exponent : int, color : Color, position : Vector2, ballsManager : Node
 		Exponent = 1
 	else:
 		Exponent = exponent
-	_value = pow(2, exponent)
-	$CollisionShape/ValueLabel.text = str(_value)
+	Value = pow(2, exponent)
+	$CollisionShape/ValueLabel.text = str(Value)
 		
 	_color = color
 	$CollisionShape/CircleSprite.modulate = color
+	
+	_sprite = $CollisionShape/CircleSprite
 	
 	Radius = $CollisionShape.shape.get_radius() * $CollisionShape.scale.x
 	set_position(position)
@@ -35,8 +41,16 @@ func promote(exponent, color):
 	_color = color
 	$CollisionShape/CircleSprite.modulate = color
 	Exponent = exponent
-	_value = pow(2, exponent)
-	$CollisionShape/ValueLabel.text = str(_value)
+	Value = pow(2, exponent)
+	$CollisionShape/ValueLabel.text = str(Value)
+	$AnimationPlayer.play("Merge")
+	
+	var particles = PARTICLES_SCENE.instance()
+	particles.global_position = self.global_position
+	particles.process_material.color = color
+	_ballsManager.add_child_below_node(_ballsManager._ballsParent, particles)
+	particles.emitting = true
+	particles.restart()
 
 func select():
 	# TODO visual indication
